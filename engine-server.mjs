@@ -8,11 +8,11 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const FEE_TREASURY = process.env.FEE_TREASURY || "0xffca8215aEf69a0d3fF428E1B7B8D33D5c05bF07";
 
-// Crea la cartella data se non esiste sul container di Render
+// Crea la cartella data ricorsivamente
 const DATA_DIR = path.join(__dirname, "data");
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
