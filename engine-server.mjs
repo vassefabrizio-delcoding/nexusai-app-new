@@ -4,7 +4,6 @@ import fastifyCors from "@fastify/cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { ethers } from "ethers";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,7 +12,13 @@ const PORT = process.env.PORT || 3000;
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const FEE_TREASURY = process.env.FEE_TREASURY || "0xffca8215aEf69a0d3fF428E1B7B8D33D5c05bF07";
 
-const DB_FILE = path.join(__dirname, "data", "ledger.json");
+// Crea la cartella data se non esiste sul container di Render
+const DATA_DIR = path.join(__dirname, "data");
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const DB_FILE = path.join(DATA_DIR, "ledger.json");
 if (!fs.existsSync(DB_FILE)) {
   fs.writeFileSync(DB_FILE, JSON.stringify({ transactions: [], metrics: { totalVolumeUsdc: 0, totalFeesEarnedUsdc: 0 } }, null, 2));
 }
@@ -135,10 +140,10 @@ fastify.post("/api/create-order", async (req, reply) => {
 async function run() {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
   console.log("==================================================");
-  console.log(`🚀 FINTECH ENTERPRISE ENGINE ATTIVO`);
-  console.log(`🌐 Dashboard UI & API  : http://localhost:${PORT}`);
-  console.log(`🏦 Treasury Fee Wallet : ${FEE_TREASURY}`);
-  console.log(`⛓ Gateway On-Chain     : ${CONTRACT_ADDRESS}`);
+  console.log(`🚀 FINTECH ENTERPRISE ENGINE ATTIVO SU RENDER`);
+  console.log(`🌐 Porta In Ascolto     : ${PORT}`);
+  console.log(`🏦 Treasury Fee Wallet  : ${FEE_TREASURY}`);
+  console.log(`⛓ Gateway On-Chain      : ${CONTRACT_ADDRESS}`);
   console.log("==================================================");
 }
 
