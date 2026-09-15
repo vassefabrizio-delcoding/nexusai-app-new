@@ -3,7 +3,6 @@ import fastifyStatic from "@fastify/static";
 import fastifyCors from "@fastify/cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,8 +10,9 @@ const __dirname = path.dirname(__filename);
 const PORT = Number(process.env.PORT) || 3000;
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const FEE_TREASURY = process.env.FEE_TREASURY || "0xffca8215aEf69a0d3fF428E1B7B8D33D5c05bF07";
+const CONTRACT_ADDRESS = "0x4Ca42cD403D1C871672064D72971F2A7a201AC69";
 
-// In-memory ledger con persistenza safe
+// Ledger in-memory per container cloud (Render, Koyeb, Docker)
 const memoryStore = {
   transactions: [],
   metrics: {
@@ -20,43 +20,6 @@ const memoryStore = {
     totalFeesEarnedUsdc: 0
   }
 };
-
-const DATA_DIR = path.join(__dirname, "data");
-const DB_FILE = path.join(DATA_DIR, "ledger.json");
-
-function initStorage() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    if (fs.existsSync(DB_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-      memoryStore.transactions = data.transactions || [];
-      memoryStore.metrics = data.metrics || memoryStore.metrics;
-    } else {
-      fs.writeFileSync(DB_FILE, JSON.stringify(memoryStore, null, 2));
-    }
-  } catch (err) {
-    console.warn("Storage fallback: esecuzione in memoria", err.message);
-  }
-}
-initStorage();
-
-function saveStorage() {
-  try {
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(DB_FILE, JSON.stringify(memoryStore, null, 2));
-  } catch (err) {
-    console.warn("Errore salvataggio storage:", err.message);
-  }
-}
-
-let CONTRACT_ADDRESS = "0x4Ca42cD403D1C871672064D72971F2A7a201AC69";
-if (fs.existsSync("./monetized-engine.json")) {
-  try {
-    CONTRACT_ADDRESS = JSON.parse(fs.readFileSync("./monetized-engine.json", "utf8")).address;
-  } catch {}
-}
 
 const fastify = Fastify({ logger: false });
 
@@ -154,7 +117,6 @@ fastify.post("/api/create-order", async (req, reply) => {
   });
   memoryStore.metrics.totalVolumeUsdc += grossUsdc;
   memoryStore.metrics.totalFeesEarnedUsdc += feeUsdc;
-  saveStorage();
 
   return {
     orderId: extId,
@@ -169,7 +131,7 @@ fastify.post("/api/create-order", async (req, reply) => {
 async function run() {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
   console.log("==================================================");
-  console.log(`🚀 NEXUSPAY ENGINE LIVE SU RENDER`);
+  console.log(`🚀 NEXUSPAY ENTERPRISE ENGINE ATTIVO SU RENDER`);
   console.log(`🌐 Porta In Ascolto     : ${PORT}`);
   console.log(`🏦 Treasury Fee Wallet  : ${FEE_TREASURY}`);
   console.log(`⛓ Gateway On-Chain      : ${CONTRACT_ADDRESS}`);
