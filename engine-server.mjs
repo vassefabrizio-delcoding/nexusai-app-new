@@ -12,22 +12,50 @@ const PORT = Number(process.env.PORT) || 3000;
 const RPC_URL = process.env.BASE_RPC_URL || "https://mainnet.base.org";
 const FEE_TREASURY = process.env.FEE_TREASURY || "0xffca8215aEf69a0d3fF428E1B7B8D33D5c05bF07";
 
-// Crea la cartella data ricorsivamente
-const DATA_DIR = path.join(__dirname, "data");
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
+// In-memory ledger con persistenza safe
+const memoryStore = {
+  transactions: [],
+  metrics: {
+    totalVolumeUsdc: 0,
+    totalFeesEarnedUsdc: 0
+  }
+};
 
+const DATA_DIR = path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "ledger.json");
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify({ transactions: [], metrics: { totalVolumeUsdc: 0, totalFeesEarnedUsdc: 0 } }, null, 2));
+
+function initStorage() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+    }
+    if (fs.existsSync(DB_FILE)) {
+      const data = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+      memoryStore.transactions = data.transactions || [];
+      memoryStore.metrics = data.metrics || memoryStore.metrics;
+    } else {
+      fs.writeFileSync(DB_FILE, JSON.stringify(memoryStore, null, 2));
+    }
+  } catch (err) {
+    console.warn("Storage fallback: esecuzione in memoria", err.message);
+  }
+}
+initStorage();
+
+function saveStorage() {
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+    fs.writeFileSync(DB_FILE, JSON.stringify(memoryStore, null, 2));
+  } catch (err) {
+    console.warn("Errore salvataggio storage:", err.message);
+  }
 }
 
 let CONTRACT_ADDRESS = "0x4Ca42cD403D1C871672064D72971F2A7a201AC69";
 if (fs.existsSync("./monetized-engine.json")) {
   try {
     CONTRACT_ADDRESS = JSON.parse(fs.readFileSync("./monetized-engine.json", "utf8")).address;
-  } catch (e) {}
+  } catch {}
 }
 
 const fastify = Fastify({ logger: false });
@@ -51,7 +79,12 @@ async function getLiveRate() {
   }
 }
 
-fastify.get("/api/health", async () => ({ status: "HEALTHY", network: "Base Mainnet (8453)", engineContract: CONTRACT_ADDRESS, treasury: FEE_TREASURY }));
+fastify.get("/api/health", async () => ({
+  status: "HEALTHY",
+  network: "Base Mainnet (8453)",
+  engineContract: CONTRACT_ADDRESS,
+  treasury: FEE_TREASURY
+}));
 
 fastify.get("/api/quote", async (req) => {
   const { amountUsdc, model } = req.query;
@@ -74,10 +107,7 @@ fastify.get("/api/quote", async (req) => {
   };
 });
 
-fastify.get("/api/metrics", async () => {
-  const db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-  return db.metrics;
-});
+fastify.get("/api/metrics", async () => memoryStore.metrics);
 
 fastify.post("/api/create-order", async (req, reply) => {
   const { model, amount, iban, bic, accountAddress } = req.body;
@@ -111,8 +141,7 @@ fastify.post("/api/create-order", async (req, reply) => {
 
   const settlementUrl = `https://widget.mtpelerin.com/?${params.toString()}`;
 
-  const db = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-  db.transactions.unshift({
+  memoryStore.transactions.unshift({
     id: extId,
     timestamp: new Date().toISOString(),
     model,
@@ -123,9 +152,9 @@ fastify.post("/api/create-order", async (req, reply) => {
     iban,
     settlementUrl
   });
-  db.metrics.totalVolumeUsdc += grossUsdc;
-  db.metrics.totalFeesEarnedUsdc += feeUsdc;
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
+  memoryStore.metrics.totalVolumeUsdc += grossUsdc;
+  memoryStore.metrics.totalFeesEarnedUsdc += feeUsdc;
+  saveStorage();
 
   return {
     orderId: extId,
@@ -140,7 +169,7 @@ fastify.post("/api/create-order", async (req, reply) => {
 async function run() {
   await fastify.listen({ port: PORT, host: "0.0.0.0" });
   console.log("==================================================");
-  console.log(`🚀 FINTECH ENTERPRISE ENGINE ATTIVO SU RENDER`);
+  console.log(`🚀 NEXUSPAY ENGINE LIVE SU RENDER`);
   console.log(`🌐 Porta In Ascolto     : ${PORT}`);
   console.log(`🏦 Treasury Fee Wallet  : ${FEE_TREASURY}`);
   console.log(`⛓ Gateway On-Chain      : ${CONTRACT_ADDRESS}`);
