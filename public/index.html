@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="it" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexusPay • Instant Web3 Settlement Rail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#f0fdf4', 500: '#10b981', 600: '#059669', 700: '#047857' }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased">
+  <!-- Navbar -->
+  <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+    <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-slate-950 text-xl shadow-lg shadow-emerald-500/20">N</div>
+        <span class="font-bold text-lg tracking-tight">Nexus<span class="text-emerald-400">Pay</span> Protocol</span>
+        <span class="ml-2 px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Base Mainnet</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <div class="text-right hidden sm:block">
+          <p class="text-xs text-slate-400">Treasury Revenue</p>
+          <p id="metricsFee" class="text-sm font-bold text-emerald-400">$0.00 USDC</p>
+        </div>
+        <button id="connectBtn" class="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 transition border border-slate-700">Gasless Smart Account</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-4xl mx-auto w-full px-6 py-12">
+    <div class="text-center max-w-2xl mx-auto mb-10">
+      <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">Liquidazione Fiat Istantanea da Base Mainnet</h1>
+      <p class="text-slate-400 text-sm sm:text-base">Converti USDC in bonifico SEPA Instant direttamente sul tuo IBAN senza costi di gas e senza exchange centralizzati.</p>
+    </div>
+
+    <!-- Mode Selector Tabs -->
+    <div class="grid grid-cols-3 gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-xl mb-8">
+      <button onclick="setMode('cashout')" id="tab-cashout" class="py-2.5 text-xs font-bold rounded-lg transition text-slate-400">⚡ Instant Cash-Out (0.4%)</button>
+      <button onclick="setMode('merchant')" id="tab-merchant" class="py-2.5 text-xs font-bold rounded-lg transition text-slate-400">🛍 Merchant Checkout (1.0%)</button>
+      <button onclick="setMode('payroll')" id="tab-payroll" class="py-2.5 text-xs font-bold rounded-lg transition text-slate-400">💼 Payroll Batch ($1.50)</button>
+    </div>
+
+    <!-- Settlement Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl shadow-emerald-950/10">
+      <div class="space-y-6">
+        <!-- Input Amount -->
+        <div>
+          <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Importo da Liquidare (USDC)</label>
+          <div class="relative">
+            <input type="number" id="amountInput" value="500" min="10" step="10" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3.5 text-xl font-bold text-white focus:outline-none focus:border-emerald-500 transition">
+            <span class="absolute right-4 top-3.5 text-slate-400 font-bold text-sm">USDC (Base)</span>
+          </div>
+        </div>
+
+        <!-- Banking Coordinates -->
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">IBAN di Accredito (SEPA)</label>
+            <input type="text" id="ibanInput" value="IT22B0200822800000103317304" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition">
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">BIC / SWIFT</label>
+            <input type="text" id="bicInput" value="UNCRITM1305" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm font-mono text-white focus:outline-none focus:border-emerald-500 transition">
+          </div>
+        </div>
+
+        <!-- Breakdown Panel -->
+        <div class="bg-slate-950/80 border border-slate-800/80 rounded-xl p-4 space-y-2 text-xs">
+          <div class="flex justify-between text-slate-400">
+            <span>Commissione di Protocollo</span>
+            <span id="displayFee" class="font-mono font-medium text-slate-200">2.00 USDC</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Commissioni Gas Rete (Sponsorizzate)</span>
+            <span class="font-mono text-emerald-400 font-bold">0.00 ETH (Free)</span>
+          </div>
+          <div class="border-t border-slate-800/80 pt-2 flex justify-between items-center text-sm font-bold">
+            <span class="text-white">Netto Accreditato (Stima EUR)</span>
+            <span id="displayNetEur" class="text-emerald-400 font-mono text-base">~458.00 €</span>
+          </div>
+        </div>
+
+        <!-- Trigger Button -->
+        <button id="submitBtn" onclick="executeOrder()" class="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 font-bold text-slate-950 transition shadow-lg shadow-emerald-500/20 text-sm tracking-wide uppercase">
+          Esegui Liquidazione Istantanea
+        </button>
+      </div>
+    </div>
+
+    <!-- Result / Dispatch Link -->
+    <div id="resultBox" class="hidden mt-6 bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-6 text-sm">
+      <div class="flex items-center gap-3 mb-3 text-emerald-400 font-bold">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        <span>Ordine Generato e Validato con Successo!</span>
+      </div>
+      <p class="text-slate-300 text-xs mb-4">L'istruzione bancaria ISO 20022 è stata preparata. Procedi alla liquidazione finale sul canale autorizzato Mt Pelerin:</p>
+      <a id="settleLink" href="#" target="_blank" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-xs hover:bg-emerald-400 transition">
+        <span>Apri Gateway Mt Pelerin Precompilato</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+      </a>
+    </div>
+  </main>
+
+  <script>
+    let currentMode = 'cashout';
+
+    function setMode(mode) {
+      currentMode = mode;
+      ['cashout', 'merchant', 'payroll'].forEach(m => {
+        const btn = document.getElementById(`tab-${m}`);
+        if(m === mode) {
+          btn.className = "py-2.5 text-xs font-bold rounded-lg transition bg-emerald-500 text-slate-950 shadow-md";
+        } else {
+          btn.className = "py-2.5 text-xs font-bold rounded-lg transition text-slate-400 hover:text-white";
+        }
+      });
+      updateQuote();
+    }
+
+    async function updateQuote() {
+      const amount = document.getElementById('amountInput').value || 100;
+      try {
+        const res = await fetch(`/api/quote?amountUsdc=${amount}&model=${currentMode}`);
+        const data = await res.json();
+        document.getElementById('displayFee').innerText = `${data.feeUsdc} USDC`;
+        document.getElementById('displayNetEur').innerText = `~${data.estimatedEur} €`;
+      } catch(e) {}
+    }
+
+    async function loadMetrics() {
+      try {
+        const res = await fetch('/api/metrics');
+        const data = await res.json();
+        document.getElementById('metricsFee').innerText = `$${(data.totalFeesEarnedUsdc || 0).toFixed(2)} USDC`;
+      } catch(e) {}
+    }
+
+    async function executeOrder() {
+      const btn = document.getElementById('submitBtn');
+      btn.innerText = "Preparazione Ordine Bancario...";
+      btn.disabled = true;
+
+      const payload = {
+        model: currentMode,
+        amount: document.getElementById('amountInput').value,
+        iban: document.getElementById('ibanInput').value,
+        bic: document.getElementById('bicInput').value
+      };
+
+      try {
+        const res = await fetch('/api/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+
+        document.getElementById('settleLink').href = data.settlementUrl;
+        document.getElementById('resultBox').classList.remove('hidden');
+        loadMetrics();
+      } catch(err) {
+        alert("Errore nella richiesta di liquidazione");
+      } finally {
+        btn.innerText = "Esegui Liquidazione Istantanea";
+        btn.disabled = false;
+      }
+    }
+
+    document.getElementById('amountInput').addEventListener('input', updateQuote);
+    setMode('cashout');
+    loadMetrics();
+  </script>
+</body>
+</html>

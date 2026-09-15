@@ -1,0 +1,194 @@
+{
+  "address": "0x6175899eA5840d9AE26AF3A64DE1b75F91B8578a",
+  "abi": [
+    {
+      "type": "function",
+      "name": "processMerchantCheckout",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "grossAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "iban",
+          "type": "string"
+        },
+        {
+          "name": "bic",
+          "type": "string"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "processPayrollBatch",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "recipients",
+          "type": "address[]"
+        },
+        {
+          "name": "amounts",
+          "type": "uint256[]"
+        },
+        {
+          "name": "ibans",
+          "type": "string[]"
+        },
+        {
+          "name": "bics",
+          "type": "string[]"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "function",
+      "name": "processInstantCashout",
+      "inputs": [
+        {
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "name": "grossAmount",
+          "type": "uint256"
+        },
+        {
+          "name": "iban",
+          "type": "string"
+        },
+        {
+          "name": "bic",
+          "type": "string"
+        }
+      ],
+      "outputs": [],
+      "stateMutability": "nonpayable"
+    },
+    {
+      "type": "event",
+      "name": "MerchantSettled",
+      "inputs": [
+        {
+          "name": "merchant",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "grossAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "feeAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "netSettlement",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "iban",
+          "type": "string",
+          "indexed": false
+        },
+        {
+          "name": "bic",
+          "type": "string",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "PayrollExecuted",
+      "inputs": [
+        {
+          "name": "employer",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "recipient",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "grossAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "feeAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "netSettlement",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "iban",
+          "type": "string",
+          "indexed": false
+        },
+        {
+          "name": "bic",
+          "type": "string",
+          "indexed": false
+        }
+      ]
+    },
+    {
+      "type": "event",
+      "name": "InstantCashout",
+      "inputs": [
+        {
+          "name": "user",
+          "type": "address",
+          "indexed": true
+        },
+        {
+          "name": "grossAmount",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "spreadFee",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "netSettlement",
+          "type": "uint256",
+          "indexed": false
+        },
+        {
+          "name": "iban",
+          "type": "string",
+          "indexed": false
+        },
+        {
+          "name": "bic",
+          "type": "string",
+          "indexed": false
+        }
+      ]
+    }
+  ]
+}

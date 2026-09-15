@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: nexuspay-settlement-engine
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node engine-server.mjs
+    envVars:
+      - key: PORT
+        value: 3000
